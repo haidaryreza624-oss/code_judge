@@ -3,6 +3,6 @@
 python -m venv .venv
 cd venv/scripts/activate
 cd (to root folder)
-pip intall -r requirements.txt
+pip install -r requirements.txt
 uvicorn main:app --reload
 ```
