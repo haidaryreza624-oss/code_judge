@@ -1,7 +1,3 @@
-Below is a complete, pasteable setup guide for configuring the Judge Engine on a completely new Windows machine.
-
-It assumes Python, g++, and Java are already installed, but their installation locations are unknown.
-
 # CodeArena Judge Engine – New Machine Setup
 
 ## 1. Open PowerShell and locate the installed tools
@@ -192,22 +188,3 @@ You can now test your submission endpoints.
 4. The current queue is in-memory, so pending jobs disappear when the server restarts.
 5. The current implementation does not isolate submitted programs. Do not expose it to untrusted student submissions until proper sandboxing and resource enforcement are implemented.
 
-Setup sequence to remember:
-
-```
-Install/check tools
-       ↓
-Configure PATH
-       ↓
-Clone project
-       ↓
-Create virtual environment
-       ↓
-Install requirements
-       ↓
-Verify compilers
-       ↓
-Run 14 tests
-       ↓
-Start FastAPI
-```
