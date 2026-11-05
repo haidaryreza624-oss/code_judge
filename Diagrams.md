@@ -170,30 +170,45 @@ Shows the complete process from submitting source code in Laravel to receiving t
 
 ```mermaid
 sequenceDiagram
-    actor Participant
-    participant Laravel as Laravel Application
-    participant API as FastAPI Judge Engine
-    participant Queue as Queue Manager
-    participant Judge as Judge Service
+    autonumber
 
-    Participant->>Laravel: Submit source code
-    Laravel->>API: POST /api/v1/submissions/
-    API->>API: Validate request
-    API->>Queue: Add submission to queue
-    Queue-->>API: Generate job ID
-    API-->>Laravel: Return job ID and Queued status
-    Laravel-->>Participant: Show submission processing
+    actor User
+    participant Laravel
+    participant JudgeAPI as Judge Engine API
+    participant Queue as In-Memory Queue
+    participant Worker as Judge Worker
+    participant JudgeService as Judge Service
 
-    Queue->>Judge: Process submission
-    Judge->>Judge: Compile source code
-    Judge->>Judge: Execute test cases
-    Judge->>Judge: Generate verdict
-    Judge-->>Queue: Return judging result
-    Queue->>Queue: Update job status to Completed
+    User->>Laravel: Submit source code
+    Laravel->>Laravel: Validate submission
+    Laravel->>Laravel: Save submission with Pending status
 
-    Laravel->>API: GET /api/v1/submissions/{job_id}
-    API-->>Laravel: Return status and result
-    Laravel-->>Participant: Display verdict
+    Laravel->>JudgeAPI: POST /api/v1/submissions/
+    JudgeAPI->>JudgeAPI: Validate request
+
+    alt Queue is full
+        JudgeAPI-->>Laravel: HTTP 503 - Queue Full
+        Laravel->>Laravel: Mark submission as Failed
+    else Queue has space
+        JudgeAPI->>Queue: Add judging job
+        Queue-->>JudgeAPI: Job accepted
+        JudgeAPI-->>Laravel: HTTP 202 - Job ID
+
+        Laravel->>Laravel: Save job ID
+        Laravel-->>User: Submission received
+
+        Worker->>Queue: Get next job
+        Queue-->>Worker: Return job
+        Worker->>JudgeService: Judge submission
+
+        JudgeService-->>Worker: Return verdict and results
+        Worker->>Worker: Update job status to Completed
+
+        Laravel->>JudgeAPI: GET /api/v1/submissions/{job_id}
+        JudgeAPI-->>Laravel: Job status and result
+        Laravel->>Laravel: Update submission verdict
+        Laravel-->>User: Display verdict
+    end
 ```
 
 ## 5. Internal Execution Sequence Diagram
