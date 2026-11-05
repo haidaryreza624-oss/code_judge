@@ -92,6 +92,13 @@ README.md
 
 ```
 python -m venv .venv
+<<<<<<< HEAD
+=======
+cd venv/scripts/activate
+cd (to root folder)
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+>>>>>>> b4bd16895e6d3b9f42dc019c4b8b59a7dd6e6e26
 ```
 
 Activate it:
