@@ -1,7 +1,14 @@
+
 import asyncio
 import uuid
 
 from app.services.judge_service import judge_submission
+from app.services.job_storage import (
+    initialize_database,
+    create_job,
+    update_job,
+    get_job
+)
 from app.schemas.submission import SubmissionRequest
 
 
@@ -13,20 +20,16 @@ class QueueManager:
 
     def __init__(self):
         self.queue = asyncio.Queue(maxsize=QUEUE_SIZE)
-        self.jobs = {}
         self.workers = []
 
     async def submit(self, data: SubmissionRequest):
 
         job_id = f"job_{uuid.uuid4().hex[:12]}"
 
-        job = {
-            "job_id": job_id,
-            "job_status": "Queued",
-            "result": None
-        }
+        if self.queue.full():
+            return None
 
-        self.jobs[job_id] = job
+        create_job(job_id)
 
         try:
             self.queue.put_nowait({
@@ -35,7 +38,10 @@ class QueueManager:
             })
 
         except asyncio.QueueFull:
-            del self.jobs[job_id]
+            update_job(job_id, "Failed", {
+                "status": "Internal Error",
+                "message": "Queue is full."
+            })
             return None
 
         return {
@@ -44,11 +50,7 @@ class QueueManager:
         }
 
     async def get_job(self, job_id):
-
-        print("REQUESTED JOB:", job_id)
-        print("AVAILABLE JOBS:", self.jobs)
-
-        return self.jobs.get(job_id)
+        return get_job(job_id)
 
     async def worker(self):
 
@@ -59,7 +61,7 @@ class QueueManager:
             job_id = task["job_id"]
             data = task["data"]
 
-            self.jobs[job_id]["job_status"] = "Running"
+            update_job(job_id, "Running")
 
             try:
 
@@ -72,21 +74,21 @@ class QueueManager:
                     time_limit=data.time_limit
                 )
 
-                self.jobs[job_id]["job_status"] = "Completed"
-                self.jobs[job_id]["result"] = result
+                update_job(job_id, "Completed", result)
 
             except Exception as error:
 
-                self.jobs[job_id]["job_status"] = "Failed"
-                self.jobs[job_id]["result"] = {
+                update_job(job_id, "Failed", {
                     "status": "Internal Error",
                     "message": str(error)
-                }
+                })
 
             finally:
                 self.queue.task_done()
 
     async def start(self):
+
+        initialize_database()
 
         self.workers = [
             asyncio.create_task(self.worker())
