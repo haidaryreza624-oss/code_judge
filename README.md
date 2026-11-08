@@ -94,8 +94,6 @@ Activate it:
 
 ```
 .\.venv\Scripts\Activate.ps1
-```
-
 If PowerShell blocks activation:
 
 ```
